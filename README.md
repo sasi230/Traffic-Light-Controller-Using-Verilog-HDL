@@ -32,102 +32,90 @@ Capture screenshots of the waveform and save the simulation logs to include in y
 Verilog Code for Traffic Light Controller
 
 // traffic_light_controller.v
-module traffic_light_controller (
-    input wire clk,
-    input wire reset,
-    output reg [2:0] lights  // 3-bit output: [2]=Red, [1]=Yellow, [0]=Green
+```
+module TrafficLightController(
+    input wire clk,          // Clock input
+    input wire reset,        // Reset input
+    output reg [1:0] state   // 2-bit state output (00: Green, 01: Yellow, 10: Red)
 );
-    // Define states
-    typedef enum reg [1:0] {
-        GREEN = 2'b00,
-        YELLOW = 2'b01,
-        RED = 2'b10
-    } state_t;
 
-    state_t current_state, next_state;
-    reg [3:0] counter;  // Timer counter
+    // State encoding
+    localparam GREEN  = 2'b00;
+    localparam YELLOW = 2'b01;
+    localparam RED    = 2'b10;
 
-    // State transition based on counter
+    // State transition
     always @(posedge clk or posedge reset) begin
         if (reset) begin
-            current_state <= GREEN;
-            counter <= 0;
+            state <= GREEN; // Reset to Green state
         end else begin
-            if (counter == 4'd9) begin
-                current_state <= next_state;
-                counter <= 0;
-            end else begin
-                counter <= counter + 1;
-            end
+            case (state)
+                GREEN: state <= YELLOW; // Green to Yellow
+                YELLOW: state <= RED;    // Yellow to Red
+                RED: state <= GREEN;     // Red to Green
+                default: state <= GREEN; // Default to Green
+            endcase
         end
     end
-
-    // Next state logic and output control
-    always @(*) begin
-        case (current_state)
-            GREEN: begin
-                lights = 3'b001;  // Green light on
-                next_state = YELLOW;
-            end
-            YELLOW: begin
-                lights = 3'b010;  // Yellow light on
-                next_state = RED;
-            end
-            RED: begin
-                lights = 3'b100;  // Red light on
-                next_state = GREEN;
-            end
-            default: begin
-                lights = 3'b000;  // All lights off
-                next_state = GREEN;
-            end
-        endcase
-    end
 endmodule
+```
 
 Testbench for Traffic Light Controller
 
 // traffic_light_controller_tb.v
 `timescale 1ns / 1ps
+```
+module TrafficLightController_tb;
 
-module traffic_light_controller_tb;
+    reg clk;                // Clock signal
+    reg reset;              // Reset signal
+    wire [1:0] state;       // State output
 
-    // Inputs
-    reg clk;
-    reg reset;
-
-    // Outputs
-    wire [2:0] lights;
-
-    // Instantiate the Unit Under Test (UUT)
-    traffic_light_controller uut (
+    // Instantiate the TrafficLightController
+    TrafficLightController uut (
         .clk(clk),
         .reset(reset),
-        .lights(lights)
+        .state(state)
     );
 
-    // Clock generation
-    always #5 clk = ~clk;  // Toggle clock every 5 ns
+    // Generate clock signal
+    initial begin
+        clk = 0;
+        forever #5 clk = ~clk; // Toggle clock every 5 time units
+    end
 
-    // Test procedure
+    // Test sequence
     initial begin
         // Initialize inputs
-        clk = 0;
+        reset = 1; // Assert reset
+        #10;       // Wait for 10 time units
+        reset = 0; // Deassert reset
+
+        // Simulate for enough time to see state changes
+        #30;       // Wait for 30 time units
+
+        // Assert reset again
         reset = 1;
+        #10;       // Wait for 10 time units
+        reset = 0;
 
-        // Release reset after some time
-        #10 reset = 0;
+        // Simulate for more time
+        #30;       // Wait for 30 time units
 
-        // Run simulation for 100 ns to observe light transitions
-        #100 $stop;
+        
+        $finish;
     end
 
-    // Monitor outputs
+    
     initial begin
-        $monitor("Time=%0t | Lights (R Y G) = %b", $time, lights);
+        $monitor("Time: %0d | State: %b", $time, state);
     end
-
 endmodule
+```
+OUTPUT:
+![Screenshot 2024-10-05 170022](https://github.com/user-attachments/assets/86b2655f-59ab-484c-a4b7-3305f87321f4)
+
+
 
 
 Conclusion
